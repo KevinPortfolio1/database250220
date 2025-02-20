@@ -1,0 +1,323 @@
+1. 資料庫基礎知識
+
+    資料庫概念：了解資料庫是什麼，為什麼它是資料管理的核心。
+    資料庫模型：學習不同的資料庫模型，如關聯型資料庫（RDBMS）、NoSQL、圖形資料庫等。
+    資料庫管理系統（DBMS）：學習常見的DBMS，如MySQL、PostgreSQL、SQL Server、Oracle、MongoDB等。
+    資料庫設計：了解資料庫結構的設計原則，包括表格、欄位、主鍵、外鍵等。
+
+2. SQL (結構化查詢語言)
+
+    基本操作：學習如何使用SQL進行資料操作，例如SELECT、INSERT、UPDATE、DELETE。
+    查詢語句：熟練掌握複雜查詢、過濾條件（WHERE）、排序（ORDER BY）、聯接（JOIN）等。
+    資料庫正規化：學習如何設計高效的資料庫結構，減少資料冗餘。
+
+3. 資料庫管理與維護
+
+    備份與恢復：了解如何備份和恢復資料庫資料，這是保證資料安全的重要部分。
+    索引與效能優化：學習如何使用索引來提升查詢效能，並掌握資料庫性能調整的基本技巧。
+    交易與鎖：學習如何處理資料庫中的交易（Transaction）和並發控制，以確保資料一致性。
+
+4. NoSQL 資料庫
+
+    非關聯型資料庫：學習一些常見的NoSQL資料庫，如MongoDB、Cassandra、Redis等，並了解其適用場景。
+    資料模型：了解如何在NoSQL中建模資料，與關聯型資料庫的區別。
+
+5. 資料庫的應用
+
+    資料庫架構設計：學習如何設計大規模分布式資料庫架構，這對於高效能和高可用性系統至關重要。
+    資料庫與應用程式：學習如何將資料庫與應用程式（如Web應用、企業系統等）進行集成，並了解如何進行API設計與資料存取。
+
+6. 進階主題
+
+    分布式資料庫：學習如何處理分布式資料存儲與運算，這對於處理大規模資料非常重要。
+    資料倉儲與ETL：了解資料倉儲的概念，並學習如何將資料從不同來源提取、轉換和載入（ETL）到資料倉儲中進行分析。
+
+7. 實作與專案經驗
+
+    建立自己的資料庫專案：實作一個簡單的資料庫應用，將所學的知識付諸實踐。
+    開源專案與貢獻：參與資料庫相關的開源專案，學習業界的最佳實踐。
+	
+	
+----------------------------------------------------------------------------------------------------------------------
+1. 關聯型資料庫（Relational Database） 範例
+
+我們以 MySQL 為例，這是最常見的關聯型資料庫。
+建立資料庫和表格
+
+-- 創建資料庫
+CREATE DATABASE School;
+
+-- 選擇使用這個資料庫
+USE School;
+
+-- 創建學生表格 (Students)
+CREATE TABLE Students (
+    StudentID INT AUTO_INCREMENT PRIMARY KEY,
+    FirstName VARCHAR(50),
+    LastName VARCHAR(50),
+    Age INT
+);
+
+-- 創建課程表格 (Courses)
+CREATE TABLE Courses (
+    CourseID INT AUTO_INCREMENT PRIMARY KEY,
+    CourseName VARCHAR(100)
+);
+
+-- 創建學生與課程關聯表格 (Enrollments)
+CREATE TABLE Enrollments (
+    EnrollmentID INT AUTO_INCREMENT PRIMARY KEY,
+    StudentID INT,
+    CourseID INT,
+    FOREIGN KEY (StudentID) REFERENCES Students(StudentID),
+    FOREIGN KEY (CourseID) REFERENCES Courses(CourseID)
+);
+
+插入資料
+
+-- 插入學生資料
+INSERT INTO Students (FirstName, LastName, Age) VALUES ('John', 'Doe', 20);
+INSERT INTO Students (FirstName, LastName, Age) VALUES ('Jane', 'Smith', 22);
+
+-- 插入課程資料
+INSERT INTO Courses (CourseName) VALUES ('Math 101');
+INSERT INTO Courses (CourseName) VALUES ('History 101');
+
+-- 插入學生選課資料
+INSERT INTO Enrollments (StudentID, CourseID) VALUES (1, 1);
+INSERT INTO Enrollments (StudentID, CourseID) VALUES (1, 2);
+INSERT INTO Enrollments (StudentID, CourseID) VALUES (2, 1);
+
+查詢資料（關聯查詢）
+
+-- 查詢學生的課程
+SELECT Students.FirstName, Students.LastName, Courses.CourseName
+FROM Students
+JOIN Enrollments ON Students.StudentID = Enrollments.StudentID
+JOIN Courses ON Enrollments.CourseID = Courses.CourseID;
+
+2. 非關聯型資料庫（NoSQL） 範例
+
+我們以 MongoDB 為例，這是最常見的非關聯型資料庫。
+安裝 MongoDB 驅動 (假設使用 Node.js)
+
+首先需要安裝 MongoDB 驅動：
+
+npm install mongodb
+
+使用 Node.js 操作 MongoDB
+
+const { MongoClient } = require('mongodb');
+
+// MongoDB 連接字串
+const uri = "mongodb://localhost:27017";
+
+// 建立 MongoClient 實例
+const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+async function run() {
+  try {
+    // 連接到 MongoDB
+    await client.connect();
+
+    // 選擇資料庫
+    const database = client.db("school");
+
+    // 選擇集合 (類似表格)
+    const studentsCollection = database.collection("students");
+    const coursesCollection = database.collection("courses");
+
+    // 插入學生資料
+    const student1 = { firstName: "John", lastName: "Doe", age: 20 };
+    const student2 = { firstName: "Jane", lastName: "Smith", age: 22 };
+
+    await studentsCollection.insertMany([student1, student2]);
+
+    // 插入課程資料
+    const course1 = { courseName: "Math 101" };
+    const course2 = { courseName: "History 101" };
+
+    await coursesCollection.insertMany([course1, course2]);
+
+    // 插入學生選課資料 (非關聯式資料)
+    const enrollmentsCollection = database.collection("enrollments");
+    const enrollment1 = { studentId: student1._id, courseId: course1._id };
+    const enrollment2 = { studentId: student1._id, courseId: course2._id };
+    const enrollment3 = { studentId: student2._id, courseId: course1._id };
+
+    await enrollmentsCollection.insertMany([enrollment1, enrollment2, enrollment3]);
+
+    // 查詢資料：列出所有學生及其選擇的課程
+    const result = await enrollmentsCollection.aggregate([
+      {
+        $lookup: {
+          from: "students", 
+          localField: "studentId", 
+          foreignField: "_id", 
+          as: "studentInfo"
+        }
+      },
+      {
+        $lookup: {
+          from: "courses", 
+          localField: "courseId", 
+          foreignField: "_id", 
+          as: "courseInfo"
+        }
+      },
+      {
+        $project: {
+          studentName: { $concat: ["$studentInfo.firstName", " ", "$studentInfo.lastName"] },
+          courseName: { $arrayElemAt: ["$courseInfo.courseName", 0] }
+        }
+      }
+    ]).toArray();
+
+    console.log(result);
+    
+  } finally {
+    // 關閉連接
+    await client.close();
+  }
+}
+
+run().catch(console.dir);
+
+關聯型與非關聯型資料庫比較
+
+    關聯型資料庫（如 MySQL、PostgreSQL）
+	 以表格的形式儲存資料，並通過外鍵建立關聯，適用於結構化資料且需要事務處理和數據完整性保障的情境。
+    非關聯型資料庫（如 MongoDB）
+	 則更加靈活，資料儲存通常是以 JSON 形式，適用於處理大規模資料、非結構化資料或快速擴展的情境，
+	 並不需要事務性或資料間的強關聯。
+	 
+---------------------------------------------------------------------------------------------------------------------
+1. 關聯型資料庫（Relational Database）資料格式
+資料表（Tables）
+
+關聯型資料庫中的資料是儲存在 表格（Table） 中的，每個表格包含若干列（Columns）和行（Rows）。
+資料的結構是嚴格的，每一列都具有明確的資料型別，並且表格之間可以通過 外鍵（Foreign Key） 進行關聯。
+
+    表格結構（Schema）：關聯型資料庫的資料有明確的結構，通常會先定義好資料表的結構，
+	包括欄位名稱、欄位資料型別（例如 INT、VARCHAR、DATE 等），以及是否允許 NULL 值等。
+    資料格式：表格中的每一行代表一條資料記錄，每一列代表資料的屬性。
+
+範例：
+
+假設我們有一個學生表格（Students）和課程表格（Courses），它們的資料格式如下：
+
+Students 表格：
+StudentID (PK)	FirstName	LastName	Age
+1	John	Doe	20
+2	Jane	Smith	22
+
+Courses 表格：
+CourseID (PK)	CourseName
+1	Math 101
+2	History 101
+
+Enrollments 表格（關聯表格，記錄學生選課情況）：
+EnrollmentID (PK)	StudentID (FK)	CourseID (FK)
+1	1	1
+2	1	2
+3	2	1
+
+    主鍵（Primary Key）：每個資料表都有一個主鍵，用來唯一標識每條記錄。
+    外鍵（Foreign Key）：Enrollments 表格中的 StudentID 和 CourseID 是外鍵，分別指向 Students 和 Courses 表格的主鍵。
+
+資料格式特徵：
+
+    表格行列結構，具有固定的欄位。
+    每一列資料都具有相同的結構。
+    支援多種數據類型，如整數、字串、日期等。
+    強烈的資料一致性、事務性（ACID），確保資料的完整性。
+
+2. 非關聯型資料庫（NoSQL）資料格式
+
+非關聯型資料庫並不像關聯型資料庫那樣有明確的表格結構，而是更加靈活，根據不同類型的 NoSQL 資料庫，
+資料的儲存格式有所不同。
+常見的 NoSQL 資料庫類型包括 文檔型（Document）、鍵值型（Key-Value）、列族型（Column-family） 和 圖形型（Graph） 等。
+
+文檔型資料庫（如 MongoDB）
+
+在文檔型資料庫中，資料通常以 JSON 格式（或者 BSON 格式）儲存。每個 "文檔" 可以具有不同的欄位（屬性），
+且欄位數量和類型可以隨著每個文檔不同而變化。
+
+    資料格式：資料以嵌套的 JSON 或 BSON 物件儲存。這使得資料更具彈性，可以儲存多層結構化或非結構化資料。
+    資料結構：每個文檔可以是不同結構的，欄位可以是嵌套的，也可以是不同型別的資料。
+
+範例：
+
+假設我們有一個學生的資料，資料格式如下：
+
+{
+  "_id": 1,
+  "firstName": "John",
+  "lastName": "Doe",
+  "age": 20,
+  "courses": [
+    {
+      "courseId": 1,
+      "courseName": "Math 101"
+    },
+    {
+      "courseId": 2,
+      "courseName": "History 101"
+    }
+  ]
+}
+
+這是一個學生的文檔，包含：
+
+    _id：每個文檔的唯一標識。
+    firstName、lastName、age：基本屬性。
+    courses：一個嵌套的陣列，包含了該學生選修的課程，每個課程有自己的欄位。
+
+鍵值型資料庫（如 Redis）
+
+在鍵值型資料庫中，資料是以 "鍵"（Key）和 "值"（Value）對的形式儲存。
+每個鍵對應一個值，可以是字符串、數字、列表、集合或其他複雜的資料結構。
+範例：
+
+假設我們有學生的基本資料，資料格式如下：
+
+Key: student:1
+Value: {"firstName": "John", "lastName": "Doe", "age": 20}
+
+這裡，student:1 是唯一的鍵，對應的值是一個包含學生基本資料的 JSON 字串。
+列族型資料庫（如 Cassandra）
+
+在列族型資料庫中，資料是以列為單位儲存，適用於大規模分布式系統中，尤其在處理時序資料或大數據應用中非常有效。
+範例：
+
+資料會儲存在一個列族中，每個列族是由一組行和列組成，通常每行資料的結構不完全相同。
+
+Row: student_1
+Columns: 
+  firstName = "John"
+  lastName = "Doe"
+  age = 20
+  courses = ["Math 101", "History 101"]
+
+圖形型資料庫（如 Neo4j）
+
+圖形型資料庫專門用於儲存圖形結構資料，例如節點、邊和屬性，適用於處理複雜的關聯資料。
+範例：
+
+Node: Student_1 [firstName="John", lastName="Doe", age=20]
+Node: Course_1 [courseName="Math 101"]
+Node: Course_2 [courseName="History 101"]
+
+Edge: EnrolledIn [student=Student_1, course=Course_1]
+Edge: EnrolledIn [student=Student_1, course=Course_2]
+
+這裡，Student_1 是一個節點，代表學生；Course_1 和 Course_2 是課程節點，並且有邊（Edge）表示學生選擇了哪些課程。
+資料格式比較總結
+特徵			關聯型資料庫（Relational Database）						非關聯型資料庫（NoSQL）
+資料儲存結構	表格（Rows, Columns）									文件（JSON/BSON）、鍵值對、列、圖等
+資料類型		預定義的資料型別（如 INT、VARCHAR）						非結構化或半結構化資料，可存儲多樣化資料
+資料關聯			表格之間有外鍵關聯									資料之間通常不強制要求關聯，根據需求可設計
+資料擴展性		水平擴展較為困難（一般需要複製和分區）					水平擴展性強，適合大規模資料和快速擴展
+事務性與一致性	高事務性與一致性（ACID）							可能以最終一致性為主，事務支持較弱（某些NoSQL有支持）
+	
+	
