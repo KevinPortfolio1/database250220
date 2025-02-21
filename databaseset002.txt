@@ -1,0 +1,122 @@
+1. 使用 環境變數 存儲資料庫帳號和密碼
+
+最推薦的做法是使用 環境變數，而不是將帳號和密碼直接寫在程式碼中。
+這樣可以確保敏感資料不會被硬編碼到 PHP 檔案中。
+
+a. 在伺服器設定環境變數
+
+你可以將資料庫帳號和密碼存儲在伺服器的環境變數中，這樣 PHP 就可以從環境變數中讀取這些資訊。
+
+例如，在 Linux/Unix 系統 上，你可以在 .bashrc 或 .bash_profile 中設定環境變數：
+
+export DB_HOST="localhost"
+export DB_USERNAME="root"
+export DB_PASSWORD="your_password"
+export DB_NAME="your_database"
+
+然後執行 source ~/.bashrc 或 source ~/.bash_profile 來使這些變數生效。
+
+b. 在 PHP 中讀取環境變數
+
+PHP 可以使用 getenv() 來讀取這些環境變數。
+
+<?php
+$servername = getenv('DB_HOST');
+$username = getenv('DB_USERNAME');
+$password = getenv('DB_PASSWORD');
+$dbname = getenv('DB_NAME');
+
+try {
+    // 建立 PDO 連接
+    $conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
+    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    echo "Connected successfully";
+} catch (PDOException $e) {
+    echo "Connection failed: " . $e->getMessage();
+}
+?>
+
+方法 2：使用配置檔案
+
+如果你不希望使用環境變數，也可以將資料庫的憑證儲存在一個配置檔案中，並且確保該檔案的權限設置正確。
+
+創建一個配置檔案（例如 config.php）
+
+<?php
+// config.php
+define('DB_SERVER', 'localhost');
+define('DB_USERNAME', 'root');
+define('DB_PASSWORD', 'your_password');
+define('DB_NAME', 'my_database');
+?>
+
+在主程式中包含該配置檔案
+
+<?php
+// 引入配置檔案
+require_once 'config.php';
+
+// 使用配置檔案中的資訊來連接資料庫
+try {
+    $conn = new PDO("mysql:host=" . DB_SERVER . ";dbname=" . DB_NAME, DB_USERNAME, DB_PASSWORD);
+    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    echo "Connected successfully";
+} catch(PDOException $e) {
+    echo "Connection failed: " . $e->getMessage();
+}
+?>
+
+注意：確保配置檔案 config.php 的存取權限設置為只有伺服器上的使用者可以讀取，這樣可以避免它被不當存取。
+
+方法 3：使用配置檔案與 .env 檔案（適用於框架或更多擴展）
+
+在許多現代 PHP 框架（例如 Laravel 或 Symfony）中，使用 .env 檔案來儲存配置變數是非常常見的做法。
+你可以使用像 vlucas/phpdotenv 這樣的庫來實現。
+
+安裝 phpdotenv
+
+使用 Composer 安裝：
+
+composer require vlucas/phpdotenv
+
+創建 .env 檔案
+
+在專案根目錄中創建 .env 檔案，並將資料庫憑證放入其中：
+
+DB_HOST=localhost
+DB_USER=root
+DB_PASS=your_password
+DB_NAME=my_database
+
+讀取 .env 檔案
+
+在 PHP 中使用 phpdotenv 來讀取 .env 檔案中的變數：
+
+<?php
+// 引入 Composer 的 autoloader
+require_once 'vendor/autoload.php';
+
+// 加載 .env 檔案
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
+
+// 使用 .env 中的資料庫設置
+$servername = $_ENV['DB_HOST'];
+$username = $_ENV['DB_USER'];
+$password = $_ENV['DB_PASS'];
+$dbname = $_ENV['DB_NAME'];
+
+try {
+    $conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
+    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    echo "Connected successfully";
+} catch(PDOException $e) {
+    echo "Connection failed: " . $e->getMessage();
+}
+?>
+
+方法 4：使用資料庫憑證管理服務
+
+如果你的應用程式部署在雲端（例如 AWS、Google Cloud、Azure 等），這些雲端平台提供了資料庫憑證管理服務。
+你可以將資料庫的帳號和密碼儲存在這些服務中，並通過 API 來安全地檢索這些憑證。
+
