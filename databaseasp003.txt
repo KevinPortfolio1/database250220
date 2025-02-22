@@ -1,0 +1,329 @@
+ASP 範例程式碼：
+
+<%
+' 定義變數
+Dim conn, connString, rs, sql
+
+' 建立連接字串
+connString = "Provider=SQLOLEDB;Data Source=你的伺服器名稱;Initial Catalog=你的資料庫名稱;User ID=你的使用者名稱;Password=你的密碼;"
+
+' 建立連接對象
+Set conn = Server.CreateObject("ADODB.Connection")
+
+' 嘗試連接資料庫
+On Error Resume Next
+conn.Open connString
+
+' 檢查是否成功連接
+If Err.Number <> 0 Then
+    Response.Write("資料庫連接錯誤: " & Err.Description)
+Else
+    Response.Write("資料庫連接成功！")
+End If
+
+' 進行 SQL 查詢
+sql = "SELECT * FROM 你的資料表"
+Set rs = conn.Execute(sql)
+
+' 顯示查詢結果
+Do While Not rs.EOF
+    Response.Write("資料列: " & rs("欄位名稱") & "<br>")
+    rs.MoveNext
+Loop
+
+' 關閉連線
+rs.Close
+Set rs = Nothing
+conn.Close
+Set conn = Nothing
+%>
+
+
+---------------------------------------------------------------------------------------------------------------
+1. 使用參數化查詢 (Parameterized Queries)
+
+直接在 SQL 查詢中拼接使用者輸入的資料容易導致 SQL 注入攻擊。最好的做法是使用參數化查詢。
+範例：
+
+<%
+' 定義資料庫連線
+Dim conn, cmd, sql, userInput
+
+' 假設從使用者那裡獲得輸入
+userInput = Request("username")
+
+' 設定資料庫連線字串
+connString = "Provider=SQLOLEDB;Data Source=你的伺服器名稱;Initial Catalog=你的資料庫名稱;
+User ID=你的使用者名稱;Password=你的密碼;"
+
+' 建立連接對象
+Set conn = Server.CreateObject("ADODB.Connection")
+conn.Open connString
+
+' 使用參數化查詢來防止 SQL 注入
+sql = "SELECT * FROM Users WHERE Username = ?"
+Set cmd = Server.CreateObject("ADODB.Command")
+cmd.ActiveConnection = conn
+cmd.CommandText = sql
+cmd.Parameters.Append cmd.CreateParameter(, 1, 1, 50, userInput) ' (資料型別, 輸入類型, 輸入長度, 使用者輸入的值)
+
+Set rs = cmd.Execute
+
+' 顯示查詢結果
+Do While Not rs.EOF
+    Response.Write("Username: " & rs("Username") & "<br>")
+    rs.MoveNext
+Loop
+
+' 清理資源
+rs.Close
+Set rs = Nothing
+conn.Close
+Set conn = Nothing
+%>
+
+2. 避免顯示錯誤訊息
+
+在生產環境中，不應該顯示詳細的錯誤訊息。這會暴露出應用程式的內部結構，對攻擊者非常有利。
+應該將錯誤詳細資訊記錄在伺服器的日誌中，而不是直接返回給使用者。
+
+範例：
+
+<%
+' 設定錯誤處理
+On Error Resume Next
+
+' 程式碼區塊
+' 這裡可能會發生錯誤
+
+If Err.Number <> 0 Then
+    ' 記錄錯誤到伺服器日誌
+    Response.Write("發生錯誤，但不顯示詳細信息")
+    ' 寫入錯誤日誌
+    ' 在這裡將錯誤訊息記錄到檔案或資料庫中
+    On Error GoTo 0 ' 重設錯誤處理
+End If
+%>
+
+3. 啟用 HTTPS (SSL)
+
+當使用者與伺服器進行資料交換時，應該使用加密的通訊協定來保護資料。
+確保你的網站使用 HTTPS 來加密所有的資料傳輸，這樣可以避免敏感資料被攔截。
+
+    你可以在 IIS 中設定網站使用 SSL（如果尚未設定）。
+    記得取得有效的 SSL 憑證。
+
+4. 檢查用戶輸入
+
+對於所有來自使用者的輸入，應該進行適當的檢查，確保它們是有效的，並且不會引發問題。
+對於特殊字符進行過濾或轉換，避免 XSS（跨站腳本攻擊）或其他形式的注入攻擊。
+
+範例：清理使用者輸入
+
+<%
+Function CleanInput(input)
+    ' 去除危險字符，防止XSS攻擊
+    input = Replace(input, "<", "&lt;")
+    input = Replace(input, ">", "&gt;")
+    input = Replace(input, "'", "''")
+    input = Replace(input, """", "&quot;")
+    CleanInput = input
+End Function
+
+' 假設從使用者那裡獲得輸入
+userInput = Request("username")
+
+' 清理使用者輸入
+userInput = CleanInput(userInput)
+
+' 然後進行資料庫查詢等操作
+%>
+
+5. 限制資料庫權限
+
+在資料庫中，應該對每個使用者和應用程式設定最低必要的權限。
+避免給予應用程式完全的資料庫管理權限，這樣即便應用程式受到攻擊，資料庫也能減少被完全控制的風險。
+
+    只賦予必要的讀寫權限。
+    使用專門的帳戶連接資料庫，而不是系統管理員帳戶。
+
+6. 設定 Session 管理
+
+ASP 的 Session 可能會被用來存儲敏感資訊（例如登入資料）。
+為了避免 Session 劫持（Session Hijacking），可以設定一些額外的安全措施：
+
+    使用 Session.Timeout 設定會話的過期時間。
+    使用 Session.CookieMode 設定 Session 儲存在 Cookie 或伺服器端。
+    設定 Session.SessionID 使用強加密，避免攻擊者猜測會話 ID。
+
+範例：
+
+<%
+' 設定 session 超時時間為 20 分鐘
+Session.Timeout = 20
+
+' 強制會話 ID 儲存在伺服器端，而非客戶端 Cookie
+Session.CookieMode = 0
+%>
+
+7. 密碼加密
+
+永遠不要將密碼以明文形式儲存在資料庫中。應該使用加密或雜湊（hashing）技術來儲存密碼。
+
+常見的技術包括：
+
+    使用 MD5、SHA 或 bcrypt 等演算法進行加密。
+    對密碼進行 salt（加鹽）處理，增加安全性。
+
+範例：
+
+<%
+' 使用 ASP MD5 加密密碼
+Function EncryptPassword(password)
+    Dim objMD5, encryptedPassword
+    Set objMD5 = Server.CreateObject("MSComctlLib.MD5")
+    encryptedPassword = objMD5.ComputeHash_2(password)
+    EncryptPassword = encryptedPassword
+    Set objMD5 = Nothing
+End Function
+
+' 密碼加密處理
+encryptedPassword = EncryptPassword("使用者密碼")
+%>
+
+8. 限制 HTTP 請求大小
+
+為了防止大量的資料或惡意請求攻擊，應該限制 HTTP 請求的大小。
+範例：
+
+' 在 IIS 中設置最大請求大小，這樣可以防止過大的請求被處理
+' 例如，可以在 IIS 設定檔案中限制最大請求大小 (以 KB 為單位)
+
+
+-----------------------------------------------------------------------------------------------
+ASP 實際應用方向，幫助你了解如何利用 ASP 來開發功能強大的動態網站或網路應用。
+
+1. 動態網站開發
+
+ASP 最常見的用途是開發動態網站，這些網站的內容是根據使用者需求或資料庫中的資料動態生成的。
+應用場景：
+
+    內容管理系統 (CMS)：建立一個能夠讓使用者輕鬆管理網站內容的系統，讓使用者可以創建、編輯、刪除文章或頁面。
+	你可以使用 ASP 與資料庫互動來儲存這些內容，並且透過動態生成網頁來顯示。
+
+    電子商務網站：建立一個包含產品展示、購物車、訂單處理等功能的網上商店。
+	你可以使用 ASP 來處理使用者的訂單資料並與資料庫連接。
+
+    論壇系統：建立一個能夠讓使用者發表文章、回應討論並管理帳號的論壇。
+	ASP 可以用來處理使用者認證、發帖、回應及管理不同論壇板塊的功能。
+
+技術實踐：
+
+    使用 Session 和 Cookie 管理使用者登入狀態。
+    用 SQL 操作資料庫（例如：插入、查詢、更新、刪除資料）。
+    使用 表單處理來收集使用者資料（例如：註冊表單、聯絡表單）。
+
+2. 用戶認證和授權系統
+
+在許多應用中，你需要有一個強大的用戶認證系統，來讓使用者註冊、登入、修改個人資料等。
+這不僅是安全功能，也讓你的應用能夠根據用戶的身份來提供不同的服務。
+
+應用場景：
+
+    會員系統：用戶可以註冊帳號、登入網站，並查看或修改自己的個人資料。
+    角色基於存取控制（RBAC）：管理不同角色（例如：管理員、普通用戶）在網站中的權限。
+
+技術實踐：
+
+    使用 Session 儲存登入用戶的資料。
+    使用 MD5 或 SHA 來對用戶密碼進行雜湊加密。
+    使用 角色判斷來限制某些功能僅對特定角色開放。
+
+3. 資料庫應用開發
+
+ASP 與資料庫的結合是其強大之處之一，無論是用來展示資料還是處理用戶輸入，資料庫都在其中扮演了重要角色。
+
+應用場景：
+
+    報表系統：用戶可以查詢並生成各種報表。ASP 可以通過與資料庫的交互來處理查詢，並動態生成報表頁面。
+    資料儀表板：創建顯示實時數據的儀表板，如銷售數據、網站流量等。
+	ASP 可以從資料庫中獲取資料並將其呈現在圖表和表格中。
+
+技術實踐：
+
+    使用 ADODB 來與 SQL Server 或 MySQL 等資料庫建立連線。
+    實現複雜的查詢和資料處理，並將結果顯示在網頁上。
+    使用 SQL 聚合函數（如：COUNT, SUM, AVG）來進行統計分析。
+
+4. API 集成
+
+許多現代網站和應用程式都需要與外部系統進行資料交換。
+這時候，學會如何將 ASP 用於 API 整合將是非常有用的。
+
+應用場景：
+
+    與第三方服務整合：比如從社交媒體平台（如 Facebook、Twitter）獲取用戶資料，
+	或者通過支付平台（如 PayPal）處理訂單付款。
+    RESTful API 開發：你也可以使用 ASP 創建自己的 API，供其他應用或網站來調用。
+
+技術實踐：
+
+    使用 XMLHTTP 或 MSXML2.ServerXMLHTTP 來發送 HTTP 請求，調用外部 API 並獲取回應。
+    使用 JSON 來解析從 API 返回的數據。
+
+5. 內容管理與生成
+
+ASP 可用於開發內容管理系統（CMS），讓用戶可以輕鬆管理網站內容，無需手動編輯 HTML 文件。
+應用場景：
+
+    新聞網站：管理文章、圖片、視頻等內容的新增、編輯和刪除。
+    博客系統：用戶可以撰寫和發布文章，並與其他讀者互動。
+
+技術實踐：
+
+    使用 WYSIWYG 編輯器（如 TinyMCE 或 CKEditor）來讓用戶輕鬆編輯內容。
+    使用 動態生成網頁來顯示文章、圖片等內容。
+
+6. 即時通訊或通知系統
+
+許多應用需要即時或半即時的通訊系統。
+ASP 可以用來開發簡單的聊天系統或通知系統，實現即時訊息推送。
+
+應用場景：
+
+    聊天室：讓多位使用者能夠進行即時訊息交流。
+    即時通知：用戶在執行某些操作後（如訂單狀態更新）接收通知。
+
+技術實踐：
+
+    使用 AJAX 與 ASP 來實現無需刷新頁面的即時訊息更新。
+    實現 輪詢（Polling） 或 WebSockets 來保持即時連接。
+
+7. 定期任務和自動化
+
+你可以使用 ASP 開發一個定期任務處理系統，讓網站或應用能夠自動執行某些工作，如定時備份資料、清理過期資料等。
+
+應用場景：
+
+    自動發送電子郵件：比如每天向用戶發送日報或每月發送訂單通知。
+    自動資料備份：將資料庫或檔案定期備份到另一個位置。
+
+技術實踐：
+
+    使用 ASP 配合 Windows 任務排程器 來執行定期任務。
+    使用 CDO.Message 來發送電子郵件通知。
+
+8. 網站性能與 SEO 優化
+
+透過 ASP 開發網站時，也需要考慮網站的效能及 SEO（搜尋引擎優化）。良好的性能與 SEO 可以提升網站的速度和搜尋引擎排名。
+
+應用場景：
+
+    緩存頁面內容：對於一些不經常變動的頁面，使用緩存來減少伺服器負擔。
+    SEO 優化：創建靜態化的 URL 並使用動態標題和描述來提高搜尋引擎排名。
+
+技術實踐：
+
+    使用 Response.Cache 來緩存網頁內容。
+    使用 Meta Tags 和 友好的 URL 結構 來提高 SEO。
+
