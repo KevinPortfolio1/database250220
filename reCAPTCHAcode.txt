@@ -1,0 +1,262 @@
+reCAPTCHA計畫是由卡內基美濃大學所發展的系統，主要目的是利用CAPTCHA技術來幫助典籍數位化的進行，
+這個計畫將由書本掃描下來無法準確的被光學文字辨識技術識別的文字顯示在CAPTCHA問題中，
+讓人類在回答CAPTCHA問題時用人腦加以識別。
+
+reCAPTCHA正數位化《紐約時報》（New York Times）的掃描存檔，
+目前已經完成20年份的資料，並希望在2010年完成110年份的資料。
+
+2009年9月17日，Google宣布收購reCAPTCHA
+
+integrate reCAPTCHA (v2) in a webpage using JavaScript:
+
+Step 1: Include reCAPTCHA script
+
+You need to include the reCAPTCHA script in your HTML file. Add this in the <head> section of your HTML:
+
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
+Step 2: Add the reCAPTCHA widget to your form
+
+In your HTML form, add the reCAPTCHA widget by inserting the following code where you want the reCAPTCHA to appear:
+
+<form id="myForm" action="verify.php" method="POST">
+    <div class="g-recaptcha" data-sitekey="YOUR_SITE_KEY"></div>
+    <button type="submit">Submit</button>
+</form>
+
+Replace YOUR_SITE_KEY with your actual reCAPTCHA site key, which you can get from the Google reCAPTCHA website.
+Step 3: Handle the form submission with JavaScript
+
+Now, you can handle the form submission. You’ll need to verify the reCAPTCHA response on your server 
+(usually in PHP, Node.js, etc.). Here's an example of how you can do that in JavaScript.
+
+<script>
+  // Handle form submission
+  document.getElementById('myForm').addEventListener('submit', function(event) {
+    event.preventDefault(); // Prevent default form submission
+
+    // Get the reCAPTCHA response token
+    var response = grecaptcha.getResponse();
+
+    // Check if the response is empty
+    if (response.length === 0) {
+      alert('Please complete the CAPTCHA');
+      return;
+    }
+
+    // Proceed with form submission, possibly using AJAX
+    var formData = new FormData(this);
+    formData.append('g-recaptcha-response', response);
+
+    fetch('verify.php', {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Form successfully verified
+        alert('Form submitted successfully!');
+        // Optionally, redirect or update the UI
+      } else {
+        alert('reCAPTCHA verification failed. Please try again.');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('An error occurred. Please try again.');
+    });
+  });
+</script>
+
+Step 4: Verify the reCAPTCHA response on the server-side
+
+On your server (PHP example shown below), you need to verify the reCAPTCHA response. The g-recaptcha-response token will be passed to the server, and you can use the Google API to verify it.
+
+<?php
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $recaptchaSecret = 'YOUR_SECRET_KEY'; // Replace with your secret key
+    $recaptchaResponse = $_POST['g-recaptcha-response'];
+
+    $url = 'https://www.google.com/recaptcha/api/siteverify';
+    $data = [
+        'secret' => $recaptchaSecret,
+        'response' => $recaptchaResponse
+    ];
+
+    $options = [
+        'http' => [
+            'method' => 'POST',
+            'content' => http_build_query($data),
+            'header' => 'Content-Type: application/x-www-form-urlencoded',
+        ],
+    ];
+    $context = stream_context_create($options);
+    $response = file_get_contents($url, false, $context);
+    $result = json_decode($response);
+
+    if ($result->success) {
+        echo json_encode(['success' => true]);
+    } else {
+        echo json_encode(['success' => false]);
+    }
+}
+?>
+
+1. PHP Example
+Frontend (HTML + reCAPTCHA)
+
+<form id="myForm" action="verify.php" method="POST">
+    <div class="g-recaptcha" data-sitekey="YOUR_SITE_KEY"></div>
+    <button type="submit">Submit</button>
+</form>
+
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
+Backend (verify.php)
+
+<?php
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Your secret key (from Google reCAPTCHA site)
+    $secretKey = 'YOUR_SECRET_KEY';
+    $response = $_POST['g-recaptcha-response'];
+
+    // Send request to Google to verify the reCAPTCHA response
+    $url = 'https://www.google.com/recaptcha/api/siteverify';
+    $data = [
+        'secret' => $secretKey,
+        'response' => $response
+    ];
+
+    // Use cURL to make the request to Google
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    $result = curl_exec($ch);
+    curl_close($ch);
+
+    // Decode the response from Google
+    $resultJson = json_decode($result);
+    
+    // Check the success field in the response
+    if ($resultJson->success) {
+        echo "reCAPTCHA verified successfully!";
+    } else {
+        echo "reCAPTCHA verification failed!";
+    }
+}
+?>
+
+2. ASP.NET Example (C#)
+Frontend (HTML + reCAPTCHA)
+
+<form id="myForm" action="/Home/VerifyCaptcha" method="POST">
+    <div class="g-recaptcha" data-sitekey="YOUR_SITE_KEY"></div>
+    <button type="submit">Submit</button>
+</form>
+
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
+Backend (Controller: HomeController.cs)
+
+using System.Net;
+using System.IO;
+using Newtonsoft.Json;
+using System.Web.Mvc;
+
+public class HomeController : Controller
+{
+    [HttpPost]
+    public ActionResult VerifyCaptcha(string gRecaptchaResponse)
+    {
+        // Your secret key (from Google reCAPTCHA site)
+        string secretKey = "YOUR_SECRET_KEY";
+        string verificationUrl = "https://www.google.com/recaptcha/api/siteverify";
+
+        // Prepare the data to send to Google's verification API
+        string url = verificationUrl + "?secret=" + secretKey + "&response=" + gRecaptchaResponse;
+
+        // Send the request to Google
+        WebRequest request = WebRequest.Create(url);
+        WebResponse response = request.GetResponse();
+        StreamReader reader = new StreamReader(response.GetResponseStream());
+        string jsonResponse = reader.ReadToEnd();
+
+        // Deserialize the JSON response from Google
+        dynamic result = JsonConvert.DeserializeObject(jsonResponse);
+        
+        // Check if verification was successful
+        if (result.success == true)
+        {
+            ViewBag.Message = "reCAPTCHA verified successfully!";
+        }
+        else
+        {
+            ViewBag.Message = "reCAPTCHA verification failed!";
+        }
+
+        return View();
+    }
+}
+
+3. Node.js Example
+Frontend (HTML + reCAPTCHA)
+
+<form id="myForm" action="/verify" method="POST">
+    <div class="g-recaptcha" data-sitekey="YOUR_SITE_KEY"></div>
+    <button type="submit">Submit</button>
+</form>
+
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
+Backend (server.js - Node.js with Express)
+
+First, install necessary dependencies:
+
+npm install express body-parser axios
+
+Now, create server.js:
+
+const express = require('express');
+const bodyParser = require('body-parser');
+const axios = require('axios');
+const app = express();
+
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+
+// Endpoint to verify the reCAPTCHA response
+app.post('/verify', async (req, res) => {
+    const secretKey = 'YOUR_SECRET_KEY'; // Your secret key
+    const recaptchaResponse = req.body['g-recaptcha-response'];
+
+    // Send a request to Google to verify the reCAPTCHA response
+    try {
+        const response = await axios.post(
+            'https://www.google.com/recaptcha/api/siteverify',
+            null,
+            {
+                params: {
+                    secret: secretKey,
+                    response: recaptchaResponse
+                }
+            }
+        );
+
+        // Check if the response was successful
+        if (response.data.success) {
+            res.send('reCAPTCHA verified successfully!');
+        } else {
+            res.send('reCAPTCHA verification failed!');
+        }
+    } catch (error) {
+        res.status(500).send('Error verifying reCAPTCHA.');
+    }
+});
+
+app.listen(3000, () => {
+    console.log('Server running on http://localhost:3000');
+});
+
